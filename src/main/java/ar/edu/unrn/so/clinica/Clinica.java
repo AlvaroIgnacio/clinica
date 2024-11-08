@@ -25,7 +25,8 @@ class Clinica {
     private final Lock lockCaja = new ReentrantLock(true);
     private final Condition condCaja;
     private final int[] atendidos;
-    private int totalAtendidos = 0;
+    @SuppressWarnings("unused")
+	private int totalAtendidos = 0;
     private int llamados = 0;
 
     @SuppressWarnings("unchecked")
@@ -122,7 +123,6 @@ class Clinica {
         int medicoId = (int) (Math.random() * NUM_MEDICOS); 
         locks[medicoId].lock();
         try {
-            //if (colasEspera[medicoId].size() < MAX_SILLAS) {
             if (nroPacientes() < MAX_SILLAS) {
             	System.out.println("Pacientes: " + this.nroPacientes());
             	// Si el que llega es VIP pasarlo a la cola de VIP
@@ -145,13 +145,13 @@ class Clinica {
             	colaPago.produce(paciente);
             	System.out.println("Agregando paciente "+paciente.id()+" en la cola para pagar");
 
-            	//TODO: esperar a ser atendido por el cajero
+            	//Esperar a ser atendido por el cajero
             	this.lockCaja.lock();
             	this.condCaja.await();
+            	
             	System.out.println("El paciente " + paciente.id() + " está saliendo de la caja");
             
             } else {
-                //System.out.println("La cola del medico " + medicoId + " está llena. El paciente " + paciente.id() + " se va.");
             	System.out.println("La clínica está llena. El paciente " + paciente.id() + " se va.");
             }
         } finally {
@@ -160,7 +160,7 @@ class Clinica {
         }
     }
     
-    //TODO: metodo publico para despertar al paciente que el cajero lo atendio 
+    //Despertar al paciente que el cajero atendio 
     public void salirDeCaja() {
     	System.out.println("A punto de salir de la caja");
     	this.lockCaja.lock();
