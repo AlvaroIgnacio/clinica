@@ -19,10 +19,11 @@ class Clinica {
     private final Queue<PacienteInfo>[] colasEspera;
     private final Buffer<PacienteInfo> colaPago;
     private final Lock[] locks;
-    private final Lock lockTotal = new ReentrantLock();
+    private final Lock lockTotal = new ReentrantLock(true);
     private final Condition[] condiciones;
     private final Condition[] condPacientes;
-    //TODO: cola de condicion para pacientes que esperan en caja
+    private final Lock lockCaja = new ReentrantLock(true);
+    private final Condition condCaja;
     private final int[] atendidos;
     private int totalAtendidos = 0;
     private int llamados = 0;
@@ -36,19 +37,21 @@ class Clinica {
         this.locks = new Lock[numMedicos+1];
         this.condiciones = new Condition[numMedicos+1];
         this.condPacientes = new Condition[numMedicos+1];
+        this.condCaja = this.lockCaja.newCondition();
+        
         // Cantidad de pacientes atendidos por médico
         this.atendidos = new int[NUM_MEDICOS];
 
         this.colaPago = new Buffer<>(Integer.MAX_VALUE);
         // Dos cajeros según enunciado del problema
-        Thread cajero1 = new Thread(new Cajero<PacienteInfo>(colaPago, 1));
-        Thread cajero2 = new Thread(new Cajero<PacienteInfo>(colaPago, 2));
+        Thread cajero1 = new Thread(new Cajero<PacienteInfo>(colaPago, 1, this));
+        Thread cajero2 = new Thread(new Cajero<PacienteInfo>(colaPago, 2, this));
 
         // colas 0..NUM_MEDICOS-1 para los medicos
         // La cola NUM_MEDICOS es para los pacientes VIP
         for (int i = 0; i <= numMedicos; i++) {
             colasEspera[i] = new LinkedList<>();
-            locks[i] = new ReentrantLock();
+            locks[i] = new ReentrantLock(true);
             condiciones[i] = locks[i].newCondition();
             condPacientes[i] = locks[i].newCondition();
         }
@@ -143,17 +146,27 @@ class Clinica {
             	System.out.println("Agregando paciente "+paciente.id()+" en la cola para pagar");
 
             	//TODO: esperar a ser atendido por el cajero
+            	this.lockCaja.lock();
+            	this.condCaja.await();
+            	System.out.println("El paciente " + paciente.id() + " está saliendo de la caja");
             
             } else {
                 //System.out.println("La cola del medico " + medicoId + " está llena. El paciente " + paciente.id() + " se va.");
             	System.out.println("La clínica está llena. El paciente " + paciente.id() + " se va.");
             }
         } finally {
+        	this.lockCaja.unlock();
             locks[medicoId].unlock();
         }
     }
     
-    //TODO: metodo publico para despertar al paciente que el cajero lo atendio
+    //TODO: metodo publico para despertar al paciente que el cajero lo atendio 
+    public void salirDeCaja() {
+    	System.out.println("A punto de salir de la caja");
+    	this.lockCaja.lock();
+    	this.condCaja.signal();
+    	this.lockCaja.unlock();
+    }
     
     private int nroPacientes() {
     	lockTotal.lock();

@@ -12,10 +12,12 @@ import java.util.Random;
 class Cajero<T> implements Runnable {
     private final Buffer<T> buffer;
     private final int id;
+    private Clinica clinica;
 
-    public Cajero(Buffer<T> buffer, int id) {
+    public Cajero(Buffer<T> buffer, int id, Clinica clinica) {
         this.buffer = buffer;
         this.id = id;
+        this.clinica = clinica;
     }
 
     @Override
@@ -27,6 +29,7 @@ class Cajero<T> implements Runnable {
                 // Simula tiempo de atención
                 Thread.sleep(new Random().nextInt(1000)); 
                 System.out.println("El cajero "+this.id+" atendió a " + elemento.toString());
+                clinica.salirDeCaja();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
