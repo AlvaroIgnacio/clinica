@@ -22,6 +22,7 @@ class Clinica {
     private final Lock lockTotal = new ReentrantLock();
     private final Condition[] condiciones;
     private final Condition[] condPacientes;
+    //TODO: cola de condicion para pacientes que esperan en caja
     private final int[] atendidos;
     private int totalAtendidos = 0;
     private int llamados = 0;
@@ -98,15 +99,12 @@ class Clinica {
         try {
         	// Despierta al medico si hay un paciente esperando
             condiciones[medicoId].signal();
+            // Le avisa al paciente que ya fue atendido
+            condPacientes[medicoId].await();
         } finally {
             locks[medicoId].unlock();
         	Main.atendidos.incrementAndGet();
         	
-        	// El paciente atendido se ubica en la cola para pagar
-        	// De aquí en más el problema se modela como productores y consumidores
-        	// De alguna manera el médico "produce" pacientes que esperan para pagar
-        	colaPago.produce(paciente);
-        	System.out.println("Agregando paciente "+paciente.id()+" en la cola para pagar");
         }
     }
 
@@ -134,6 +132,18 @@ class Clinica {
                 System.out.println("El paciente " + paciente.id() + " ha llegado y se ha sentado con el medico " + medicoId + ".");
                 // Despierta al medico si está ocioso
                 condiciones[medicoId].signal(); 
+                
+                //Espera a ser atendido
+                condPacientes[medicoId].await();
+
+                // El paciente atendido se ubica en la cola para pagar
+            	// De aquí en más el problema se modela como productores y consumidores
+            	// De alguna manera el médico "produce" pacientes que esperan para pagar
+            	colaPago.produce(paciente);
+            	System.out.println("Agregando paciente "+paciente.id()+" en la cola para pagar");
+
+            	//TODO: esperar a ser atendido por el cajero
+            
             } else {
                 //System.out.println("La cola del medico " + medicoId + " está llena. El paciente " + paciente.id() + " se va.");
             	System.out.println("La clínica está llena. El paciente " + paciente.id() + " se va.");
@@ -142,6 +152,8 @@ class Clinica {
             locks[medicoId].unlock();
         }
     }
+    
+    //TODO: metodo publico para despertar al paciente que el cajero lo atendio
     
     private int nroPacientes() {
     	lockTotal.lock();
