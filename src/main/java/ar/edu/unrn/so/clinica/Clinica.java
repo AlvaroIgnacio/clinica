@@ -100,7 +100,7 @@ class Clinica {
         	// Despierta al medico si hay un paciente esperando
             condiciones[medicoId].signal();
             // Le avisa al paciente que ya fue atendido
-            condPacientes[medicoId].await();
+            condPacientes[medicoId].signal();
         } finally {
             locks[medicoId].unlock();
         	Main.atendidos.incrementAndGet();
